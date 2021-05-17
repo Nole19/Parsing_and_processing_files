@@ -12,6 +12,15 @@ def get_html(url, params=None):
     return r
 
 
+def counter_pages(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    paginator = soup.find_all('a', class_="paginator__page-number")
+    if paginator:
+        return int(paginator[-1].get_text())
+    else:
+        return 5
+
+
 def get_content(html):
     soup = BeautifulSoup(html, 'html.parser')
     items = soup.find_all('div', class_='selection-film-item-meta')
@@ -22,16 +31,23 @@ def get_content(html):
             "title": item.find('p', class_="selection-film-item-meta__name").get_text(strip=True),
             "link": HOST + item.find('a', class_="selection-film-item-meta__link").get("href"),
             "original_name_and_year": item.find('p', class_='selection-film-item-meta__original-name').get_text(),
-            "country": item.find('span', class_="selection-film-item-meta__meta-additional-item").get_text(),
+            "country and genre": item.find('p', class_="selection-film-item-meta__meta-additional").get_text(),
         })
-
-    print(films)
+    return films
 
 
 def parse():
     html = get_html(URL)
     if html.status_code == 200:
-        get_content(html.text)
+        films = []
+        pages_count = counter_pages(html.text)
+        for page in range(1, pages_count + 1):
+            print(f'Parsing of page {page} from {pages_count}...')
+            html = get_html(URL, params={'page': page})
+            films.extend(get_content(html.text))
+            # films = get_content(html.text)
+        print(films)
+
     else:
         print("Error")
 
