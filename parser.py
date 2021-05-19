@@ -1,10 +1,12 @@
 import requests
 from bs4 import BeautifulSoup
+import csv
 
 URL = 'https://www.kinopoisk.ru/lists/top250/'
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0",
            "accept": "*/*"}
 HOST = "https://www.kinopoisk.ru"
+FILE = "films.csv"
 
 
 def get_html(url, params=None):
@@ -36,6 +38,14 @@ def get_content(html):
     return films
 
 
+def save_file(items, path):
+    with open(path, 'w', newline='') as file:
+        writer = csv.writer(file, delimiter=';')
+        writer.writerow(["title", "link", "original_name_and_year", "Country and genre"])
+        for item in items:
+            writer.writerow([item["title"], item["link"], item["original_name_and_year"], item["country and genre"]])
+
+
 def parse():
     html = get_html(URL)
     if html.status_code == 200:
@@ -45,7 +55,8 @@ def parse():
             print(f'Parsing of page {page} from {pages_count}...')
             html = get_html(URL, params={'page': page})
             films.extend(get_content(html.text))
-            # films = get_content(html.text)
+        save_file(films, FILE)
+        #print(f"We've got {len(films)} films")
         print(films)
 
     else:
