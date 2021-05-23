@@ -20,7 +20,7 @@ def counter_pages(html):
     if paginator:
         return int(paginator[-1].get_text())
     else:
-        return 5
+        return 6
 
 
 def get_content(html):
@@ -32,7 +32,7 @@ def get_content(html):
         films.append({
             "title": item.find('p', class_="selection-film-item-meta__name").get_text(strip=True),
             "link": HOST + item.find('a', class_="selection-film-item-meta__link").get("href"),
-            "original_name_and_year": item.find('p', class_='selection-film-item-meta__original-name').get_text(),
+            "original_name_and_year": item.find('p', class_='selection-film-item-meta__original-name').get_text().replace(', The', ''),
             "country and genre": item.find('p', class_="selection-film-item-meta__meta-additional").get_text(),
         })
     return films
