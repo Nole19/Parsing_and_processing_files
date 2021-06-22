@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
@@ -94,9 +95,25 @@ void search_sub_2(char * filename,int size,char * phrase){
         printf("Could not open file %s",filename);  
     }
     size_t result = fread (str,1,size,fp);
-    if (result != size) {fputs ("Reading error",stderr); exit (3);}
+    if (result != size){return;} //{fputs ("Reading error",stderr); exit (3);}
     //printf("NEWLINE:");
-    // printf("%s", str);
+
+    int is_end = 0;
+    int is_numder = 1;
+    int i = 0;
+    while(!is_end){
+      if(isdigit(str[i])){
+	while(str[i] != '\n'){
+	  i++;
+	}
+      }
+      if(str[i] != '\n'){
+	printf("%c",str[i]);
+      }
+      if(str[i] == '\0') break;
+      i++;
+    }
+
     //sleep(2000);
     int index = 0;
     
