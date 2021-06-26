@@ -53,10 +53,8 @@ int min(int a, int b, int c)
 	}
 }
 
-int levenshtein(char *s1, char *s2) {
-    unsigned int x, y, s1len, s2len;
-    s1len = strlen(s1);
-    s2len = strlen(s2);
+int levenshtein(char *s1,unsigned int s1len, char *s2, int s2len) {
+    unsigned int x, y;
     unsigned int matrix[s2len+1][s1len+1];
     matrix[0][0] = 0;
     for (x = 1; x <= s2len; x++)
@@ -122,7 +120,7 @@ void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,i
 	  i++;
 	}
       }
-      if(str[i] != '\n' && str[i] != '-' && str[i] != ','){
+      if(str[i] != '\n'){
 	fprintf(fptr,"%c",str[i]);
       }
       
@@ -220,6 +218,7 @@ int find_shift(char * str){
 int is_phrase(char* path, char * phrase,int size){
     FILE *fp;
     char *str = (char *)malloc(size);
+    unsigned int phrase_length = strlen(phrase);
     fp = fopen(path, "r");
     struct stat st = {0};
    
@@ -230,15 +229,21 @@ int is_phrase(char* path, char * phrase,int size){
     if (result != size){fputs ("Reading error",stderr); exit (3);}
     
     int is_end = 0;
-    int i = 0;
+    int cnt = 0;
     while(*str != '\0'){
-      printf("%c",*str);
+      //printf("%c",*str);
+      
       str++;
-      i++;
-
+      cnt++;
+      if(levenshtein(str,phrase_length,phrase,phrase_length) < 100){
+	return 1;
+      }
+      if(cnt >= size - phrase_length){
+	break;
+      }
       
     }
-    printf("%d\n",i);
+    //printf("%d\n",i);
     fclose(fp);
     
   return 0;
@@ -314,10 +319,10 @@ int main()
 {
     double time_spent = 0.0;  
     clock_t begin = clock();
-    update_subtitles();
+    //  update_subtitles();
     //find();
-    int i = is_phrase("./new_Files/6/Nostalgia.srt","Как по-вашему",19370); 
-    //printf("%d \n",i);
+    int i = is_phrase("./new_Files/6/Nostalgia.srt","О, Матерь блаженная",19370); 
+    printf("%d \n",i);
 
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
