@@ -101,9 +101,8 @@ void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,i
     if (stat(n_file, &st) == -1) { // check if directory exist
       mkdir(n_file, 0700); // creating a directory
     }
-    
     strcat( n_file, file_name);
-    printf("%s" , n_file);
+    //printf("%s" , n_file);
     fptr = fopen(n_file , "w");
     
     if (fp == NULL){
@@ -123,26 +122,23 @@ void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,i
 	  i++;
 	}
       }
-      if(str[i] != '\n'){
+      if(str[i] != '\n' && str[i] != '-' && str[i] != ','){
 	fprintf(fptr,"%c",str[i]);
       }
+      
       if(str[i] == '\0') break;
       i++;
     }
-
     //sleep(2000);
     int index = 0;
-    
-    
     //fprintf(fptr,"%s",str);
     fclose(fp);
     fclose(fptr);
 
 }
-int main()
-{
+void update_subtitles(){
   //setlocale(LC_ALL, "Rus");
-
+    printf("Update Subtitles...\n");
   //making clock to see execution time
     double time_spent = 0.0;  
     clock_t begin = clock();
@@ -161,7 +157,7 @@ int main()
     if(folder == NULL)
     {
         perror("Unable to read directory");
-        return(1);
+        return;
     }
     
     while( (entry=readdir(folder)) ) // iterating in directory
@@ -192,18 +188,143 @@ int main()
 	   strcat( path_to_file, file->d_name );
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
 	   //printf("%s\n", entry->d_name);
+	   struct stat st_f = {0};
+	   char upd_file_path[255];
+	   strcpy(upd_file_path,"./new_Files/");
+	   strcat(upd_file_path,entry->d_name);
+	   strcat(upd_file_path,"/");
+	   strcat(upd_file_path, file->d_name);
+	   //printf("%s\n",upd_file_path);
+	   if (stat(upd_file_path, &st_f) != -1) { // check if file exist and not need to update
+	       continue; 
+	   }
+	   printf("update...\n");
 	   delete_timestamps( path_to_file,entry->d_name,file->d_name,size);
+	   // remove(path_to_file);                                                    //TODO
 	}
+	
 
     }
-    printf("end");
+    printf("end\n");
     closedir(folder);
 
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("The elapsed time is %f seconds", time_spent);
+    printf("The elapsed time is %f seconds\n", time_spent);
     
+}
+int find_shift(char * str){
+    
+    return 1;
+}
+int is_phrase(char* path, char * phrase,int size){
+    FILE *fp;
+    char *str = (char *)malloc(size);
+    fp = fopen(path, "r");
+    struct stat st = {0};
+   
+    if (fp == NULL){
+        printf("Could not open file %s",path);  
+    }
+    size_t result = fread (str,1,size,fp);
+    if (result != size){fputs ("Reading error",stderr); exit (3);}
+    
+    int is_end = 0;
+    int i = 0;
+    while(*str != '\0'){
+      printf("%c",*str);
+      str++;
+      i++;
+
+      
+    }
+    printf("%d\n",i);
+    fclose(fp);
+    
+  return 0;
+}
+void find(){
+
+  //   update_subtitles();
+  //setlocale(LC_ALL, "Rus");
+
+  //making clock to see execution time
+    double time_spent = 0.0;  
+    clock_t begin = clock();
+    // Path to directory with subtitles
+    char folder_name[255];
+    strcpy( folder_name, "./Files");
+    
+    DIR *folder;
+    struct dirent * entry;
+    int files = 0;
+    
+    //char folder_name[] = "./Files";
+
+    // open directory with subtitles 
+    folder = opendir(folder_name);
+    if(folder == NULL)
+    {
+        perror("Unable to read directory");
+        return;
+    }
+    
+    while( (entry=readdir(folder)) ) // iterating in directory
+    {
+      
+      if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")){
+     	  continue;
+        }
+      //printf("%s\n", entry->d_name);
+        char path_to_subfolder[255];
+	strcpy( path_to_subfolder, "./new_Files/"); // making path to str file
+        files++;
+	strcat( path_to_subfolder, entry->d_name );
+	strcat(path_to_subfolder,"/");
+	DIR * subfolder;
+	struct dirent *file;
+	subfolder = opendir(path_to_subfolder);
+	
+	//	printf("FILENAME:%s\n",path_to_subfolder);
+	while((file=readdir(subfolder))){
+	  if(!strcmp(file->d_name,".") || !strcmp(file->d_name,"..")){
+     	     continue;
+          }
+	   char path_to_file[255];
+           strcpy( path_to_file, path_to_subfolder);
+	   
+	   struct stat st;
+	   int size;
+	   strcat( path_to_file, file->d_name );
+	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
+	   printf("%s\n", path_to_file);
+	   
+	}
+
+    }
+    printf("end\n");
+    closedir(folder);
+
+    clock_t end = clock();
+    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("The elapsed time is %f seconds\n", time_spent);
+    
+}
+int main()
+{
+    double time_spent = 0.0;  
+    clock_t begin = clock();
+    update_subtitles();
+    //find();
+    int i = is_phrase("./new_Files/6/Nostalgia.srt","Как по-вашему",19370); 
+    //printf("%d \n",i);
+
+    clock_t end = clock();
+    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+    printf("The elapsed time is %f seconds\n", time_spent);
     return 0;
+    
+    
 }
  
        
