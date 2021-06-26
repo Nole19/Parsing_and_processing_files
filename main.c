@@ -10,7 +10,8 @@
 #include <time.h>  
 #include <locale.h>
 #include <sys/stat.h>
-
+#include <sys/types.h>
+#include <unistd.h>
 #define MAXCHAR 1000
 
 char* substr(const char *src, int m, int n)
@@ -77,7 +78,7 @@ int find_white(char * text, int first_index,int length_phrase){
 	return shift;
 }
 
-void delete_timestamps (char * filename,char * name,int size){
+void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,int size){
     FILE *fp;
     char str[size];
 
@@ -91,15 +92,22 @@ void delete_timestamps (char * filename,char * name,int size){
    
     //char* filename = "c:\\temp\\test.txt";
     //printf("%s\n",filename);
-    fp = fopen(filename, "r");
+    fp = fopen(path_to_file, "r");
     char n_file[MAXCHAR];
     strcpy( n_file, "./new_Files/");
-    strcat( n_file, name);
-    //printf("NORMAL");
+    strcat( n_file, folder_name);
+    strcat(n_file, "/");
+    struct stat st = {0};
+    if (stat(n_file, &st) == -1) { // check if directory exist
+      mkdir(n_file, 0700); // creating a directory
+    }
+    
+    strcat( n_file, file_name);
+    printf("%s" , n_file);
     fptr = fopen(n_file , "w");
     
     if (fp == NULL){
-        printf("Could not open file %s",filename);  
+        printf("Could not open file %s",file_name);  
     }
     size_t result = fread (str,1,size,fp);
     if (result != size){return;} //{fputs ("Reading error",stderr); exit (3);}
@@ -143,7 +151,7 @@ int main()
     strcpy( folder_name, "./Files");
     
     DIR *folder;
-    struct dirent *entry;
+    struct dirent * entry;
     int files = 0;
     
     //char folder_name[] = "./Files";
@@ -158,18 +166,34 @@ int main()
     
     while( (entry=readdir(folder)) ) // iterating in directory
     {
-        
-        char path_to_file=[255];
-	strcpy( path_to_file, "./Files/"); // making path to str file
+      
+      if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")){
+     	  continue;
+        }
+      //printf("%s\n", entry->d_name);
+        char path_to_subfolder[255];
+	strcpy( path_to_subfolder, "./Files/"); // making path to str file
         files++;
-	if(files < 3) continue;
-	strcat( path_to_file, entry->d_name );
-	struct stat st;
-	int size;
-        if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
-
+	strcat( path_to_subfolder, entry->d_name );
+	strcat(path_to_subfolder,"/");
+	DIR * subfolder;
+	struct dirent *file;
+	subfolder = opendir(path_to_subfolder);
 	
-	delete_timestamps(path_to_file,entry->d_name,size);
+	//	printf("FILENAME:%s\n",path_to_subfolder);
+	while((file=readdir(subfolder))){
+	  if(!strcmp(file->d_name,".") || !strcmp(file->d_name,"..")){
+     	     continue;
+          }
+	   char path_to_file[255];
+           strcpy( path_to_file, path_to_subfolder);
+	   struct stat st;
+	   int size;
+	   strcat( path_to_file, file->d_name );
+	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
+	   //printf("%s\n", entry->d_name);
+	   delete_timestamps( path_to_file,entry->d_name,file->d_name,size);
+	}
 
     }
     printf("end");
