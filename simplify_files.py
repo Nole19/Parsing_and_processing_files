@@ -20,5 +20,5 @@ for line in lines:
         new_lines += line
 #print(lines)
 #write output file
-with codecs.open('Mortaltttt.srt', 'w', encoding = 'utf8') as file:
+with codecs.open('filename2', 'w', encoding = 'utf8') as file:
     file.write(new_lines.lower())
