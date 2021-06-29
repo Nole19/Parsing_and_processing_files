@@ -1,10 +1,12 @@
 #read input file
+import sys
 import codecs
 import re
 import string
 pattern = "[0-9]+:[0-9]+:[0-9]+,[0-9]+ --> [0-9]+:[0-9]+:[0-9]+,[0-9]+"
 pattern2 = "[0-9]+"
-with codecs.open('Mortal.srt', 'r', encoding = 'mbcs') as file:
+filename = sys.argv[1]
+filename2 = sys.argv[2]
     lines = file.readlines()
 new_lines = "" ;
 for line in lines:
