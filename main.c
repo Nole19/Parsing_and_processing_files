@@ -14,6 +14,12 @@
 #include <unistd.h>
 #define MAXCHAR 1000
 
+#include <assert.h>
+#include <wchar.h>
+#include <wctype.h>
+
+
+
 char* substr(const char *src, int m, int n)
 {
     // get the length of the destination string
@@ -68,18 +74,12 @@ int levenshtein(char *s1,unsigned int s1len, char *s2, int s2len) {
     return(matrix[s2len][s1len]);
 }
 
-int find_white(char * text, int first_index,int length_phrase){
-	int shift = 0;
-	while(text[shift] != ' ' && text[shift] != '\n'){
-		shift++;
-	}
-	return shift;
-}
 
 void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,int size){
     FILE *fp;
     char str[size];
-
+    setlocale(LC_ALL, "Rus");
+	
     //unsigned int phrase_len;
     //phrase_len = strlen(phrase);
     // char new_file_name="result.txt";
@@ -121,7 +121,7 @@ void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,i
 	}
       }
       if(str[i] != '\n'){
-	fprintf(fptr,"%c",str[i]);
+	fprintf(fptr,"%c",towupper(str[i]));
       }
       
       if(str[i] == '\0') break;
@@ -134,6 +134,7 @@ void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,i
     fclose(fptr);
 
 }
+
 void update_subtitles(){
   //setlocale(LC_ALL, "Rus");
     printf("Update Subtitles...\n");
@@ -180,24 +181,40 @@ void update_subtitles(){
      	     continue;
           }
 	   char path_to_file[255];
+	   
            strcpy( path_to_file, path_to_subfolder);
 	   struct stat st;
 	   int size;
 	   strcat( path_to_file, file->d_name );
+	
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
-	   //printf("%s\n", entry->d_name);
+	   printf("%s\n", entry->d_name);
 	   struct stat st_f = {0};
 	   char upd_file_path[255];
+	   
 	   strcpy(upd_file_path,"./new_Files/");
 	   strcat(upd_file_path,entry->d_name);
+	   if (stat(upd_file_path, &st) == -1) { // check if directory exist
+     	       mkdir(upd_file_path, 0700); // creating a directory
+     	    }
 	   strcat(upd_file_path,"/");
 	   strcat(upd_file_path, file->d_name);
-	   //printf("%s\n",upd_file_path);
+	   
 	   if (stat(upd_file_path, &st_f) != -1) { // check if file exist and not need to update
 	       continue; 
 	   }
+	   printf("%s\n",upd_file_path);
 	   printf("update...\n");
-	   delete_timestamps( path_to_file,entry->d_name,file->d_name,size);
+	   char command[255];
+	   strcpy(command,"python3 prepare_file.py \"");
+	   //strcat(command,);
+	   strcat(command, path_to_file);
+	   strcat(command,"\" \"");
+	   strcat(command,upd_file_path);
+	   strcat(command,"\"\n");
+	   printf("%s",command);
+	   system(command);
+	   //delete_timestamps( path_to_file,entry->d_name,file->d_name,size);
 	   // remove(path_to_file);                                                    //TODO
 	}
 	
@@ -317,12 +334,32 @@ void find(){
 }
 int main()
 {
+  /*
+    char * str = "абвгдежзийклмнопрстуфхцчшщъыьэюя";
+    int i =0;
+    int sum = 0;
+    while(*str != '\0'){
+      printf("%d\n", (int)*str);
+      sum += *str;
+      str++;
+      i++;
+      // sum += *str;
+      if(i % 2 == 0){
+	printf("Sum %d\n",sum);
+	  sum = 0;
+      }
+    }
+    printf("Symbols count %d", i);
+    return -1;
+
+  */
     double time_spent = 0.0;  
     clock_t begin = clock();
-    //  update_subtitles();
+    update_subtitles();
     //find();
-    int i = is_phrase("./new_Files/6/Nostalgia.srt","О, Матерь блаженная",19370); 
-    printf("%d \n",i);
+    //int i = is_phrase("./new_Files/6/Nostalgia.srt","О, Матерь блаженная",19370); 
+    //printf("%d \n",i);
+    
 
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
