@@ -17,7 +17,7 @@
 #include <assert.h>
 #include <wchar.h>
 #include <wctype.h>
-
+#include "Converter/utf8_to_cp1251.h"
 
 
 char* substr(const char *src, int m, int n)
@@ -35,10 +35,8 @@ char* substr(const char *src, int m, int n)
         *dest = *(src + i);
         dest++;
     }
- 
     // null-terminate the destination string
-    *dest = '\0';
- 
+    *dest = '\0'; 
     // return the destination string
     return dest - len;
 }
@@ -92,7 +90,7 @@ void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,i
     //printf("%s\n",filename);
     fp = fopen(path_to_file, "r");
     char n_file[MAXCHAR];
-    strcpy( n_file, "./new_Files/");
+    strcpy( n_file, "../new_Files/");
     strcat( n_file, folder_name);
     strcat(n_file, "/");
     struct stat st = {0};
@@ -143,7 +141,7 @@ void update_subtitles(){
     clock_t begin = clock();
     // Path to directory with subtitles
     char folder_name[255];
-    strcpy( folder_name, "./Files");
+    strcpy( folder_name, "../Files");
     
     DIR *folder;
     struct dirent * entry;
@@ -167,7 +165,7 @@ void update_subtitles(){
         }
       //printf("%s\n", entry->d_name);
         char path_to_subfolder[255];
-	strcpy( path_to_subfolder, "./Files/"); // making path to str file
+	strcpy( path_to_subfolder, "../Files/"); // making path to str file
         files++;
 	strcat( path_to_subfolder, entry->d_name );
 	strcat(path_to_subfolder,"/");
@@ -192,7 +190,7 @@ void update_subtitles(){
 	   struct stat st_f = {0};
 	   char upd_file_path[255];
 	   
-	   strcpy(upd_file_path,"./new_Files/");
+	   strcpy(upd_file_path,"../new_Files/");
 	   strcat(upd_file_path,entry->d_name);
 	   if (stat(upd_file_path, &st) == -1) { // check if directory exist
      	       mkdir(upd_file_path, 0700); // creating a directory
@@ -206,7 +204,7 @@ void update_subtitles(){
 	   printf("%s\n",upd_file_path);
 	   printf("update...\n");
 	   char command[255];
-	   strcpy(command,"python3 prepare_file.py \"");
+	   strcpy(command,"python3 ../PyFiles/prepare_file.py \"");
 	   //strcat(command,);
 	   strcat(command, path_to_file);
 	   strcat(command,"\" \"");
@@ -275,7 +273,7 @@ void find(){
     clock_t begin = clock();
     // Path to directory with subtitles
     char folder_name[255];
-    strcpy( folder_name, "./Files");
+    strcpy( folder_name, "../Files");
     
     DIR *folder;
     struct dirent * entry;
@@ -299,7 +297,7 @@ void find(){
         }
       //printf("%s\n", entry->d_name);
         char path_to_subfolder[255];
-	strcpy( path_to_subfolder, "./new_Files/"); // making path to str file
+	strcpy( path_to_subfolder, "../new_Files/"); // making path to str file
         files++;
 	strcat( path_to_subfolder, entry->d_name );
 	strcat(path_to_subfolder,"/");
@@ -334,33 +332,20 @@ void find(){
 }
 int main()
 {
-  /*
-    char * str = "абвгдежзийклмнопрстуфхцчшщъыьэюя";
-    int i =0;
-    int sum = 0;
-    while(*str != '\0'){
-      printf("%d\n", (int)*str);
-      sum += *str;
-      str++;
-      i++;
-      // sum += *str;
-      if(i % 2 == 0){
-	printf("Sum %d\n",sum);
-	  sum = 0;
-      }
-    }
-    printf("Symbols count %d", i);
-    return -1;
+  
+    char * query = "и ты брут сын мой";
+    char * query_par = (char *)malloc(17);
+    convertUtf8ToCp1251(query, query_par);      
+    char * query_2 = "и ты брут мой сын";
+    char * query_par_2 = (char *)malloc(17);
+    convertUtf8ToCp1251(query_2, query_par_2);
 
-  */
     double time_spent = 0.0;  
     clock_t begin = clock();
-    update_subtitles();
-    //find();
-    //int i = is_phrase("./new_Files/6/Nostalgia.srt","О, Матерь блаженная",19370); 
-    //printf("%d \n",i);
     
-
+    printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,17));  
+  
+    
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
