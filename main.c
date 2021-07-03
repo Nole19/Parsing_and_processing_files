@@ -13,14 +13,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 #define MAXCHAR 1000
-
+#define MAX_WORDS 10
+#define MAX_LETTERS 15
 #include <assert.h>
 #include <wchar.h>
 #include <wctype.h>
 #include "Converter/utf8_to_cp1251.h"
 
-
-
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
 
 int min(int a, int b, int c)
 {	
@@ -38,7 +41,9 @@ int min(int a, int b, int c)
 	}
 }
 
-int levenshtein(char *s1,unsigned int s1len, char *s2, int s2len) {
+int levenshtein(char *s1, char *s2) {
+    int s1len = strlen(s1);
+    int s2len = strlen(s2);
     unsigned int x, y;
     unsigned int matrix[s2len+1][s1len+1];
     matrix[0][0] = 0;
@@ -51,67 +56,6 @@ int levenshtein(char *s1,unsigned int s1len, char *s2, int s2len) {
             matrix[x][y] = min(matrix[x-1][y] + 1, matrix[x][y-1] + 1, matrix[x-1][y-1] + (s1[y-1] == s2[x-1] ? 0 : 1));
 
     return(matrix[s2len][s1len]);
-}
-
-
-void delete_timestamps (char* path_to_file,char * folder_name,char * file_name,int size){
-    FILE *fp;
-    char str[size];
-    setlocale(LC_ALL, "Rus");
-	
-    //unsigned int phrase_len;
-    //phrase_len = strlen(phrase);
-    // char new_file_name="result.txt";
-    FILE *fptr;
-    
-   // use appropriate location if you are using MacOS or Linux
-    
-   
-    //char* filename = "c:\\temp\\test.txt";
-    //printf("%s\n",filename);
-    fp = fopen(path_to_file, "r");
-    char n_file[MAXCHAR];
-    strcpy( n_file, "../new_Files/");
-    strcat( n_file, folder_name);
-    strcat(n_file, "/");
-    struct stat st = {0};
-    if (stat(n_file, &st) == -1) { // check if directory exist
-      mkdir(n_file, 0700); // creating a directory
-    }
-    strcat( n_file, file_name);
-    //printf("%s" , n_file);
-    fptr = fopen(n_file , "w");
-    
-    if (fp == NULL){
-        printf("Could not open file %s",file_name);  
-    }
-    size_t result = fread (str,1,size,fp);
-    if (result != size){return;} //{fputs ("Reading error",stderr); exit (3);}
-    //printf("NEWLINE:");
-
-    
-    int is_end = 0;
-    //int is_numder = 1;
-    int i = 0;
-    while(!is_end){
-      if(isdigit(str[i])){
-	while(str[i] != '\n'){
-	  i++;
-	}
-      }
-      if(str[i] != '\n'){
-	fprintf(fptr,"%c",towupper(str[i]));
-      }
-      
-      if(str[i] == '\0') break;
-      i++;
-    }
-    //sleep(2000);
-    int index = 0;
-    //fprintf(fptr,"%s",str);
-    fclose(fp);
-    fclose(fptr);
-
 }
 
 void update_subtitles(){
@@ -207,76 +151,80 @@ void update_subtitles(){
     printf("The elapsed time is %f seconds\n", time_spent);
     
 }
-int find_shift(char * str){
-    
-    return 1;
-}
-int is_phrase(char* path, char * phrase,int size){
-    FILE *fp;
-    char *str = (char *)malloc(size);
-    unsigned int phrase_length = strlen(phrase);
-    fp = fopen(path, "r");
-    struct stat st = {0};
-   
-    if (fp == NULL){
-        printf("Could not open file %s",path);  
-    }
-    size_t result = fread (str,1,size,fp);
-    if (result != size){fputs ("Reading error",stderr); exit (3);}
-    
-    int is_end = 0;
-    int cnt = 0;
-    while(*str != '\0'){
-      //printf("%c",*str);
-      
-      str++;
-      cnt++;
-      if(levenshtein(str,phrase_length,phrase,phrase_length) < 100){
-	return 1;
-      }
-      if(cnt >= size - phrase_length){
+
+float compare_phrases(char * phr_1, char * phr_2){
+  float match_words = 0;
+  char all_words_1[MAX_WORDS][MAX_LETTERS];
+  char all_words_2[MAX_WORDS][MAX_LETTERS];
+  char * token = strtok(phr_1, " ");
+  int id_1=0;
+  while( token != NULL ) {
+     
+    // printf( "%s\n", token); //printing each token
+     strcpy(all_words_1[id_1],token);
+     id_1++;
+     token = strtok(NULL, " ");
+  }
+  char * token_2 = strtok(phr_2, " ");
+  int id_2=0;
+  while( token_2 != NULL ) {
+    // printf( "%s\n", token_2); //printing each token
+     strcpy(all_words_2[id_2],token_2);
+     id_2++;
+     token_2 = strtok(NULL, " ");
+  }
+  for(int i = 0;i < id_1;i++){
+    for(int j = 0; j < id_2; j++){
+      if(levenshtein(all_words_1[i], all_words_2[j]) <= 1){
+	match_words++;
 	break;
       }
-      
     }
-    //printf("%d\n",i);
-    fclose(fp);
-    
-  return 0;
+  }
+  return match_words/max(id_1,id_2);
 }
-void find(){
 
-  //   update_subtitles();
-  //setlocale(LC_ALL, "Rus");
+int find_phrase(char*path,int size,char * phrase){
+  FILE *fp;
+  char str[size];
+  fp = fopen(path, "r");
+  size_t result = fread (str,1,size,fp);
+  if (result != size){fputs ("Reading error",stderr); exit (3);}
+   char * line = strtok( str, "\r\n");
+   while( line != NULL )
+    {
+        float num = compare_phrases(line,phrase);
+        line = strtok( NULL, "\r\n");
+	
+    }
+  
+  fclose(fp);
+  
+  return 0;
 
-  //making clock to see execution time
+}
+void iterate_files(char * phrase){
+    printf("Iterating...\n");
     double time_spent = 0.0;  
     clock_t begin = clock();
-    // Path to directory with subtitles
     char folder_name[255];
-    strcpy( folder_name, "../Files");
-    
+    strcpy( folder_name, "../new_Files");
     DIR *folder;
     struct dirent * entry;
     int files = 0;
-    
-    //char folder_name[] = "./Files";
-
-    // open directory with subtitles 
     folder = opendir(folder_name);
     if(folder == NULL)
     {
         perror("Unable to read directory");
         return;
     }
-    
     while( (entry=readdir(folder)) ) // iterating in directory
     {
       
       if(!strcmp(entry->d_name,".") || !strcmp(entry->d_name,"..")){
      	  continue;
         }
-      //printf("%s\n", entry->d_name);
+
         char path_to_subfolder[255];
 	strcpy( path_to_subfolder, "../new_Files/"); // making path to str file
         files++;
@@ -285,25 +233,21 @@ void find(){
 	DIR * subfolder;
 	struct dirent *file;
 	subfolder = opendir(path_to_subfolder);
-	
-	//	printf("FILENAME:%s\n",path_to_subfolder);
 	while((file=readdir(subfolder))){
 	  if(!strcmp(file->d_name,".") || !strcmp(file->d_name,"..")){
      	     continue;
           }
 	   char path_to_file[255];
            strcpy( path_to_file, path_to_subfolder);
-	   
 	   struct stat st;
 	   int size;
 	   strcat( path_to_file, file->d_name );
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
 	   printf("%s\n", path_to_file);
-	   
+	   find_phrase(path_to_file,size,phrase);
 	}
-
     }
-    printf("end\n");
+    
     closedir(folder);
 
     clock_t end = clock();
@@ -311,25 +255,23 @@ void find(){
     printf("The elapsed time is %f seconds\n", time_spent);
     
 }
-int compare_phrases(char * phr_1, char * phr_2){
-  
-  return 1;
-}
+
 int main()
 {
   
     char * query = "и ты брут сын мой";
     char * query_par = (char *)malloc(17);
     convertUtf8ToCp1251(query, query_par);      
-    char * query_2 = "и ты брут сын";
+    char * query_2 = "и вы брут сыр мой";
     char * query_par_2 = (char *)malloc(14);
     convertUtf8ToCp1251(query_2, query_par_2);
-    compare_phrases(query_par, query_par_2);
+    printf("%f\n",(float)compare_phrases(query_par, query_par_2));
     double time_spent = 0.0;  
     clock_t begin = clock();    
-    printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,14));  
+    //printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,14));  
     //compare_phrases(query_par,query_par_2);
     // update_subtitles();
+    iterate_files(query_par);
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
