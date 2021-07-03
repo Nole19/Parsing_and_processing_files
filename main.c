@@ -20,26 +20,7 @@
 #include "Converter/utf8_to_cp1251.h"
 
 
-char* substr(const char *src, int m, int n)
-{
-    // get the length of the destination string
-    int len = n - m;
- 
-    // allocate (len + 1) chars for destination (+1 for extra null character)
-    char *dest = (char*)malloc(sizeof(char) * (len + 1));
- 
-    // extracts characters between m'th and n'th index from source string
-    // and copy them into the destination string
-    for (int i = m; i < n && (*(src + i) != '\0'); i++)
-    {
-        *dest = *(src + i);
-        dest++;
-    }
-    // null-terminate the destination string
-    *dest = '\0'; 
-    // return the destination string
-    return dest - len;
-}
+
 
 int min(int a, int b, int c)
 {	
@@ -330,28 +311,29 @@ void find(){
     printf("The elapsed time is %f seconds\n", time_spent);
     
 }
+int compare_phrases(char * phr_1, char * phr_2){
+  
+  return 1;
+}
 int main()
 {
   
     char * query = "и ты брут сын мой";
     char * query_par = (char *)malloc(17);
     convertUtf8ToCp1251(query, query_par);      
-    char * query_2 = "и ты брут мой сын";
-    char * query_par_2 = (char *)malloc(17);
+    char * query_2 = "и ты брут сын";
+    char * query_par_2 = (char *)malloc(14);
     convertUtf8ToCp1251(query_2, query_par_2);
-
+    compare_phrases(query_par, query_par_2);
     double time_spent = 0.0;  
-    clock_t begin = clock();
-    
-    printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,17));  
-  
-    
+    clock_t begin = clock();    
+    printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,14));  
+    //compare_phrases(query_par,query_par_2);
+    // update_subtitles();
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
-    return 0;
-    
-    
+    return 0;    
 }
  
        
