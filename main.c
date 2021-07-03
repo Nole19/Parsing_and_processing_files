@@ -186,18 +186,19 @@ float compare_phrases(char * phr_1, char * phr_2){
 
 int find_phrase(char*path,int size,char * phrase){
   FILE *fp;
-  char str[size];
+  ssize_t read;
+  size_t len = 0;
+  char * line = NULL;
   fp = fopen(path, "r");
-  size_t result = fread (str,1,size,fp);
-  if (result != size){fputs ("Reading error",stderr); exit (3);}
-   char * line = strtok( str, "\r\n");
-   while( line != NULL )
-    {
+  int cnt = 0;
+  while (fscanf(fp, "%[^\n]", line) ) {
         float num = compare_phrases(line,phrase);
-        line = strtok( NULL, "\r\n");
-	
-    }
+        printf("%s",line);
+	printf("%f\n",num);
+	cnt++;
+   }
   
+  printf("%d",cnt);
   fclose(fp);
   
   return 0;
@@ -265,13 +266,14 @@ int main()
     char * query_2 = "и вы брут сыр мой";
     char * query_par_2 = (char *)malloc(14);
     convertUtf8ToCp1251(query_2, query_par_2);
-    printf("%f\n",(float)compare_phrases(query_par, query_par_2));
+    // printf("%f\n",(float)compare_phrases(query_par, query_par_2));
     double time_spent = 0.0;  
     clock_t begin = clock();    
     //printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,14));  
     //compare_phrases(query_par,query_par_2);
     // update_subtitles();
-    iterate_files(query_par);
+    //iterate_files(query_par);
+    find_phrase("../new_Files/1/A Bronx Tale-CD2.srt",15730,query_par);
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
