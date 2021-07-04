@@ -13,8 +13,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #define MAXCHAR 1000
-#define MAX_WORDS 10
-#define MAX_LETTERS 15
+#define MAX_WORDS 25
+#define MAX_LETTERS 25
 #include <assert.h>
 #include <wchar.h>
 #include <wctype.h>
@@ -60,7 +60,7 @@ int levenshtein(char *s1, char *s2) {
 
 void update_subtitles(){
   //setlocale(LC_ALL, "Rus");
-    printf("Update Subtitles...\n");
+  printf("Update Subtitles...\n");
   //making clock to see execution time
     double time_spent = 0.0;  
     clock_t begin = clock();
@@ -156,8 +156,11 @@ float compare_phrases(char * phr_1, char * phr_2){
   float match_words = 0;
   char all_words_1[MAX_WORDS][MAX_LETTERS];
   char all_words_2[MAX_WORDS][MAX_LETTERS];
+  
   char * token = strtok(phr_1, " ");
+  
   int id_1=0;
+  
   while( token != NULL ) {
      
     // printf( "%s\n", token); //printing each token
@@ -186,28 +189,36 @@ float compare_phrases(char * phr_1, char * phr_2){
 
 int find_phrase(char*path,int size,char * phrase){
   FILE *fp;
-  ssize_t read;
-  size_t len = 0;
-  char * line = NULL;
+  char str[size];
+  char *saveptr;
   fp = fopen(path, "r");
+  //FILE * fw;
+  // fw = fopen("./check.txt","w");
+  size_t result = fread (str,1,size,fp);
+  if (result != size){fputs ("Reading error",stderr); exit (3);}
+  char * line = strtok_r( str, "\r\n",&saveptr);
+  //  fprintf(fw,"[%s]\n",phrase);
   int cnt = 0;
-  while (fscanf(fp, "%[^\n]", line) ) {
-        float num = compare_phrases(line,phrase);
-        printf("%s",line);
-	printf("%f\n",num);
-	cnt++;
-   }
+  while( line != NULL )
+    {
+      char * tmp_phrase = (char *)malloc(strlen(phrase));
+      strcpy(tmp_phrase,phrase);
+      //float num = compare_phrases(line,tmp_phrase);
+      
+      cnt++;
+      //fprintf(fw,"%s %f \n",phrase,num);
+      line = strtok_r( NULL, "\r\n",&saveptr);
+      free(tmp_phrase);
+    }
   
-  printf("%d",cnt);
   fclose(fp);
-  
+  //fclose(fw);
   return 0;
 
 }
 void iterate_files(char * phrase){
     printf("Iterating...\n");
-    double time_spent = 0.0;  
-    clock_t begin = clock();
+   
     char folder_name[255];
     strcpy( folder_name, "../new_Files");
     DIR *folder;
@@ -244,36 +255,33 @@ void iterate_files(char * phrase){
 	   int size;
 	   strcat( path_to_file, file->d_name );
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
-	   printf("%s\n", path_to_file);
-	   find_phrase(path_to_file,size,phrase);
+	   //printf("%s\n", path_to_file);
+	   if(find_phrase(path_to_file,size,phrase) == 1){
+	     //printf("%s\n",path_to_file);
+	   }
 	}
     }
     
     closedir(folder);
 
-    clock_t end = clock();
-    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("The elapsed time is %f seconds\n", time_spent);
+   
     
 }
 
 int main()
 {
   
-    char * query = "и ты брут сын мой";
-    char * query_par = (char *)malloc(17);
-    convertUtf8ToCp1251(query, query_par);      
-    char * query_2 = "и вы брут сыр мой";
-    char * query_par_2 = (char *)malloc(14);
-    convertUtf8ToCp1251(query_2, query_par_2);
-    // printf("%f\n",(float)compare_phrases(query_par, query_par_2));
+    char * query = "чувствует себя очень одиноко";
+    char * query_par = (char *)malloc(strlen(query));
+    convertUtf8ToCp1251(query, query_par);
     double time_spent = 0.0;  
     clock_t begin = clock();    
     //printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,14));  
-    //compare_phrases(query_par,query_par_2);
-    // update_subtitles();
-    //iterate_files(query_par);
-    find_phrase("../new_Files/1/A Bronx Tale-CD2.srt",15730,query_par);
+    //float num = compare_phrases(query_par,"и вы брут сын мой");
+    //printf("%f\n",num);
+    //update_subtitles();
+    iterate_files(query_par);
+    //find_phrase("../new_Files/2/American Beauty.CD1.srt",14287,query_par);
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
