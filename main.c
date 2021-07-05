@@ -188,29 +188,58 @@ float compare_phrases(char * phr_1, char * phr_2){
 }
 
 int find_phrase(char*path,int size,char * phrase){
+
   FILE *fp;
-  char str[size];
-  char *saveptr;
-  fp = fopen(path, "r");
+  //char str[size];
+  
   //FILE * fw;
-  // fw = fopen("./check.txt","w");
+ 
+  //fw = fopen("./check.txt","a");
+  
+  fp = fopen(path, "r");
+  char *str = (char *)malloc(size);
   size_t result = fread (str,1,size,fp);
-  if (result != size){fputs ("Reading error",stderr); exit (3);}
-  char * line = strtok_r( str, "\r\n",&saveptr);
+  if (result != size){fputs ("Reading error",stderr); exit (3);}  
+  char line[255];
+  int index = 0;
+  int cnt_b = 0;
+  while(cnt_b != size){
+    if(*str == '\r'){
+      line[index] = '\0';
+      index = 0;
+      str++;
+      cnt_b++;
+      //fprintf(fw,"%s | %s\n",phrase,line);
+      if(strcmp(line,phrase)  == 0){
+	return 1;
+      }
+    }
+    else{
+      line[index] = *str;
+     
+      index++;
+    }
+    cnt_b++;
+    str++;
+  }
+  // printf("%d\n",cnt_b);
+  // size_t result = fread (str,1,size,fp);
+  //if (result != size){fputs ("Reading error",stderr); exit (3);}
+  //char * line = strtok_r( str, " ",&saveptr);
   //  fprintf(fw,"[%s]\n",phrase);
   int cnt = 0;
-  while( line != NULL )
+  /* while( line != NULL )
     {
-      char * tmp_phrase = (char *)malloc(strlen(phrase));
-      strcpy(tmp_phrase,phrase);
+      //char * tmp_phrase = (char *)malloc(strlen(phrase));
+      //strcpy(tmp_phrase,phrase);
       //float num = compare_phrases(line,tmp_phrase);
-      
       cnt++;
       //fprintf(fw,"%s %f \n",phrase,num);
-      line = strtok_r( NULL, "\r\n",&saveptr);
-      free(tmp_phrase);
+      line = strtok_r( NULL, " ",&saveptr);
+      //printf("%s\n",line);
+      //free(tmp_phrase);
     }
-  
+  */
   fclose(fp);
   //fclose(fw);
   return 0;
@@ -218,7 +247,7 @@ int find_phrase(char*path,int size,char * phrase){
 }
 void iterate_files(char * phrase){
     printf("Iterating...\n");
-   
+    
     char folder_name[255];
     strcpy( folder_name, "../new_Files");
     DIR *folder;
@@ -258,8 +287,11 @@ void iterate_files(char * phrase){
 	   //printf("%s\n", path_to_file);
 	   if(find_phrase(path_to_file,size,phrase) == 1){
 	     //printf("%s\n",path_to_file);
+	     break;
 	   }
 	}
+	closedir(subfolder);
+	//free(path_to_subfolder);
     }
     
     closedir(folder);
@@ -271,7 +303,7 @@ void iterate_files(char * phrase){
 int main()
 {
   
-    char * query = "чувствует себя очень одиноко";
+    char * query = "он сам по себе  целый мир из него";
     char * query_par = (char *)malloc(strlen(query));
     convertUtf8ToCp1251(query, query_par);
     double time_spent = 0.0;  
@@ -285,6 +317,7 @@ int main()
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
+    free(query_par);
     return 0;    
 }
  
