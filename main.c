@@ -186,7 +186,18 @@ float compare_phrases(char * phr_1, char * phr_2){
   }
   return match_words/max(id_1,id_2);
 }
-
+int get_index(char symbol){
+  if(symbol == ' '){
+    return -2;
+  }
+  if((int)symbol == -72){
+    return 32;
+  }
+  if((int)symbol >= -32 && (int)symbol <= -1){
+    return (int)symbol + 32;
+  }
+  return -1;
+}
 int find_phrase(char*path,int size,char * phrase){
 
   FILE *fp;
@@ -210,7 +221,7 @@ int find_phrase(char*path,int size,char * phrase){
       str++;
       cnt_b++;
       //fprintf(fw,"%s | %s\n",phrase,line);
-      if(strcmp(line,phrase)  == 0){
+      if(levenshtein(line,phrase)  <= 4){
 	return 1;
       }
     }
@@ -286,7 +297,7 @@ void iterate_files(char * phrase){
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
 	   //printf("%s\n", path_to_file);
 	   if(find_phrase(path_to_file,size,phrase) == 1){
-	     //printf("%s\n",path_to_file);
+	     printf("%s\n",path_to_file);
 	     break;
 	   }
 	}
@@ -303,7 +314,7 @@ void iterate_files(char * phrase){
 int main()
 {
   
-    char * query = "он сам по себе  целый мир из него";
+    char * query= "абв гдеёжзий клмнопрстуфхцчшщъыьэюя ";
     char * query_par = (char *)malloc(strlen(query));
     convertUtf8ToCp1251(query, query_par);
     double time_spent = 0.0;  
@@ -312,6 +323,11 @@ int main()
     //float num = compare_phrases(query_par,"и вы брут сын мой");
     //printf("%f\n",num);
     //update_subtitles();
+    int index = 0;
+    while(query_par[index] != '\0'){
+      printf("%d\n",get_index(query_par[index]));
+      index++;
+    }
     iterate_files(query_par);
     //find_phrase("../new_Files/2/American Beauty.CD1.srt",14287,query_par);
     clock_t end = clock();
