@@ -40,6 +40,7 @@ int get_index(char symbol){
   return -1;
 }
 struct TrieNode{
+  int id_film;
   struct TrieNode * children[ALPHABET_SIZE];
   bool is_end;
 };
@@ -135,7 +136,7 @@ int levenshtein(char *s1, char *s2) {
 }
 
 void update_subtitles(){
-  //setlocale(LC_ALL, "Rus");
+  
   printf("Update Subtitles...\n");
   //making clock to see execution time
     double time_spent = 0.0;  
@@ -283,6 +284,11 @@ int find_phrase(char*path,int size,char * phrase,struct TrieNode ** trie_array,i
   struct TrieNode *root = getNode();
   while(cnt_b != size){
     if(*str == '\r'){
+      word[index] = '\0';
+      index = 0;
+      //printf("%s\n",word);
+      insert(root, word);
+
       str++;
       cnt_b++;
      }
@@ -366,7 +372,7 @@ void iterate_files(char * phrase,struct TrieNode ** trie_array,int* trie_index){
 	   int size;
 	   strcat( path_to_file, file->d_name );
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
-	   //printf("%s\n", path_to_file);
+	   printf("%s\n", path_to_file);
 	   if(find_phrase(path_to_file,size,phrase,trie_array,trie_index) == 1){
 	     printf("%s\n",path_to_file);
 	     break;
@@ -410,94 +416,39 @@ void display(FILE *fptr,struct TrieNode* root, char str[], int level)
 }
 int main()
 {
-  
-    char * query= "абв гдеёжзий клмнопрстуфхцчшщъыьэюя ";
-    char * query_par = (char *)malloc(strlen(query));
-    convertUtf8ToCp1251(query, query_par);
-    double time_spent = 0.0;  
-    clock_t begin = clock();
+    
+    
     int in = 0;
     int * trie_index = &in;
     struct TrieNode * trie_array[10000];
-    //printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,14));  
-    //float num = compare_phrases(query_par,"и вы брут сын мой");
-    //printf("%f\n",num);
-    //update_subtitles();
-    /*
-    
-    char keys[][255] = {"ты7d", "выбыл", "норман"};
-    char keys_par[3][255];
-    char output[][32] = {"Not present in trie", "Present in trie"};
-    
-    struct TrieNode *root = getNode();
-    // Construct trie
-    
-    for(int j =0;j < ARRAY_SIZE(keys_par);j++){
-      convertUtf8ToCp1251(keys[j],keys_par[j]);
-    }
-    
-    int i;
-    
-    for (i = 0; i < ARRAY_SIZE(keys_par); i++)
-        insert(root, keys_par[i]);
-    
+
+    update_subtitles();
     int level = 0;
-    char str[255];
-
-
-    
+    char str[60000];
     FILE *fptr;
-    fptr = fopen("BIGF","w");
+    fptr = fopen("BIGF","w");     
     
-    display(fptr,root, str, level);
-    
-    
-    char * query= "выбылм";
+    char * query = "нескучный";
     char * query_par = (char *)malloc(strlen(query));
     convertUtf8ToCp1251(query, query_par);
-    fprintf(fptr,"QUERY: %s",query_par);
-    printf("%s --- %s\n", "the", output[search(root, query_par)] );
-    free_all(root);
-
-
-
-        
-    char keys_2[][255] = {"новые", "словечки", "хахахха"};
-    char keys_par_2[3][255];
-    char output_2[][32] = {"Not present in trie", "Present in trie"};
-    
-    root = getNode();
-    
-    for(int j =0;j < ARRAY_SIZE(keys_par_2);j++){
-      convertUtf8ToCp1251(keys_2[j],keys_par_2[j]);
-    }
-    
-    
-    
-    for (i = 0; i < ARRAY_SIZE(keys_par_2); i++)
-        insert(root, keys_par_2[i]);
-   
-    display(fptr,root,str,level);
-    fclose(fptr);
-    */
-    
+    //printf("%s\n",query_par);
     iterate_files(query_par,trie_array,trie_index);
     //find_phrase("../new_Files/2/American Beauty.CD1.srt",14287,query_par);
-    clock_t end = clock();
-    time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("The elapsed time is %f seconds\n", time_spent);
+   
+    
     while(true){
       char c = getchar();
-      char * query_2= "шампанское";
-      char * query_par_2 = (char *)malloc(strlen(query));
-      convertUtf8ToCp1251(query_2, query_par_2);
-      // fprintf(fptr,"QUERY: %s",query_par_2);
+      double time_spent = 0.0;  
+      clock_t begin = clock();
+      //display(fptr,trie_array[14],str,level);
+      //fprintf(fptr,"QUERY: %s",query_par);
       for(int i=0;i< *trie_index;i++){
-	//printf("%d\n",i);
-	printf("%d\n",search(trie_array[i],query_par_2))
-	  
-	
+	search(trie_array[i],query_par);
       }
+   
+      clock_t end = clock();
+      time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+      printf("The elapsed time is %f seconds\n", time_spent);
       printf("done");
       //printf("%s --- %s\n", "the", output[search(root, query_par)] );
     }
