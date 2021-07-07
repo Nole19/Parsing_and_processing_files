@@ -40,7 +40,7 @@ int get_index(char symbol){
   return -1;
 }
 struct TrieNode{
-  int id_film;
+  unsigned int id_film;
   struct TrieNode * children[ALPHABET_SIZE];
   bool is_end;
 };
@@ -264,7 +264,7 @@ float compare_phrases(char * phr_1, char * phr_2){
   return match_words/max(id_1,id_2);
 }
 
-int find_phrase(char*path,int size,char * phrase,struct TrieNode ** trie_array,int * trie_index){
+int build_tries(char*path,int size,struct TrieNode ** trie_array,int * trie_index,int id_film){
 
   FILE *fp;
   //char str[size];
@@ -280,17 +280,25 @@ int find_phrase(char*path,int size,char * phrase,struct TrieNode ** trie_array,i
   char word[180];
   int index = 0;
   int cnt_b = 0;
-  
+  int line_counter=0;
   struct TrieNode *root = getNode();
+  root->id_film = id_film;
   while(cnt_b != size){
     if(*str == '\r'){
       word[index] = '\0';
       index = 0;
-      //printf("%s\n",word);
       insert(root, word);
-
       str++;
       cnt_b++;
+      line_counter++;
+      if(line_counter == 10){
+	  trie_array[*trie_index] = root;
+	  printf("%d\n",*trie_index);
+	  (*trie_index)++;
+	  root = getNode();
+	  root->id_film = id_film;
+	  line_counter = 0;
+      } 
      }
     else if(*str == ' '){
       word[index] = '\0';
@@ -333,7 +341,7 @@ int find_phrase(char*path,int size,char * phrase,struct TrieNode ** trie_array,i
   return 0;
 
 }
-void iterate_files(char * phrase,struct TrieNode ** trie_array,int* trie_index){
+void iterate_files(struct TrieNode ** trie_array,int* trie_index){
     printf("Iterating...\n");
     
     char folder_name[255];
@@ -372,12 +380,8 @@ void iterate_files(char * phrase,struct TrieNode ** trie_array,int* trie_index){
 	   int size;
 	   strcat( path_to_file, file->d_name );
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
-	   printf("%s\n", path_to_file);
-	   if(find_phrase(path_to_file,size,phrase,trie_array,trie_index) == 1){
-	     printf("%s\n",path_to_file);
-	     break;
-	   }
 	   
+	   build_tries(path_to_file,size,trie_array,trie_index,atoi(entry->d_name));
 	}
 	closedir(subfolder);
 	//free(path_to_subfolder);
@@ -414,44 +418,100 @@ void display(FILE *fptr,struct TrieNode* root, char str[], int level)
         }
     }
 }
+char * enter_line(void) {
+    char * line = malloc(100), * linep = line;
+    size_t lenmax = 100, len = lenmax;
+    int c;
+
+    if(line == NULL)
+        return NULL;
+
+    for(;;) {
+        c = fgetc(stdin);
+        if(c == EOF)
+            break;
+
+        if(--len == 0) {
+            len = lenmax;
+            char * linen = realloc(linep, lenmax *= 2);
+
+            if(linen == NULL) {
+                free(linep);
+                return NULL;
+            }
+            line = linen + (line - linep);
+            linep = linen;
+        }
+
+        if((*line++ = c) == '\n')
+            break;
+    }
+    *line = '\0';
+    return linep;
+}
 int main()
 {
     
     
     int in = 0;
     int * trie_index = &in;
-    struct TrieNode * trie_array[10000];
-
+    struct TrieNode * trie_array[1000000];
     update_subtitles();
-    int level = 0;
-    char str[60000];
-    FILE *fptr;
-    fptr = fopen("BIGF","w");     
     
-    char * query = "нескучный";
-    char * query_par = (char *)malloc(strlen(query));
-    convertUtf8ToCp1251(query, query_par);
-    //printf("%s\n",query_par);
-    iterate_files(query_par,trie_array,trie_index);
-    //find_phrase("../new_Files/2/American Beauty.CD1.srt",14287,query_par);
+    // char * query = "больше";
    
-    
+    iterate_files(trie_array,trie_index);
+   
     while(true){
-      char c = getchar();
+      char words[255][255];
+      int words_count = 0;
+      int word_index = 0;
+      char* query  = enter_line();
+      char * query_par = (char *)malloc(strlen(query));
+      convertUtf8ToCp1251(query, query_par);
+   
+      while(*query_par != '\0'){
+	if(*query_par == ' '){
+	  words[words_count][word_index] = '\0';
+	  word_index = 0;
+	  words_count++;
+	}
+	else if(*query_par == '\n'){
+	  words[words_count][word_index] = '\0';	  
+	  words_count++;
+	  break;
+	}
+	else{
+	  words[words_count][word_index] = *query_par;
+	  word_index++;
+	}
+	query_par++;
+      }
+      FILE * fw = fopen("ch.txt","w");
+      for(int i = 0; i < words_count;i++){
+	fprintf(fw,"%s\n",words[i]);
+      }
+      fclose(fw);
       double time_spent = 0.0;  
       clock_t begin = clock();
-      //display(fptr,trie_array[14],str,level);
-      //fprintf(fptr,"QUERY: %s",query_par);
       for(int i=0;i< *trie_index;i++){
-	search(trie_array[i],query_par);
+	int good_word_count = 0;
+        for(int i =0;i<words_count;i++){
+	  if(search(trie_array[i],words[i])){
+	    printf("please");
+	    good_word_count++;
+	  }
+	}
+	  if(good_word_count != 0){
+	    printf("%d\n",good_word_count);
+	  }
       }
-   
       clock_t end = clock();
       time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
       printf("The elapsed time is %f seconds\n", time_spent);
-      printf("done");
-      //printf("%s --- %s\n", "the", output[search(root, query_par)] );
+      printf("done\n");
+  
     }
-    //free(query_par);
     return 0;    
 }
+
