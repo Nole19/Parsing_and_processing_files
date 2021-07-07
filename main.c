@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,11 +20,86 @@
 #include <wchar.h>
 #include <wctype.h>
 #include "Converter/utf8_to_cp1251.h"
-
+#define ALPHABET_SIZE 33
+#define ARRAY_SIZE(a) sizeof(a)/sizeof(a[0])
 #define max(a,b) \
    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
+
+int get_index(char symbol){
+  if(symbol == ' '){
+    return -2;
+  }
+  if((int)symbol == -72){
+    return 32;
+  }
+  if((int)symbol >= -32 && (int)symbol <= -1){
+    return (int)symbol + 32;
+  }
+  return -1;
+}
+struct TrieNode{
+  struct TrieNode * children[ALPHABET_SIZE];
+  bool is_end;
+};
+struct TrieNode * getNode(){
+  struct TrieNode *pNode = NULL;
+  pNode = (struct TrieNode *)malloc(sizeof(struct TrieNode));
+  if(pNode){
+    int i;
+    pNode->is_end = false;
+    for(i=0;i<ALPHABET_SIZE;i++){
+      pNode->children[i] = NULL;
+   }
+  }
+  return pNode;
+}
+
+  void insert(struct TrieNode*root,const char *key){
+  int level;
+  int length = strlen(key);
+  int index;
+  struct TrieNode * pCrawl = root;
+  for(level =0; level < length;level++){
+    index = get_index(key[level]);
+    if(index < 0 || index >= ALPHABET_SIZE) continue;
+    if(!pCrawl->children[index]){
+      pCrawl->children[index] = getNode();
+    }
+    
+    pCrawl = pCrawl->children[index];
+    
+  }
+  pCrawl->is_end = true;
+}
+
+bool search(struct TrieNode * root,const  char * key){
+  int level;
+  int length = strlen(key);
+  int index;
+  struct TrieNode * pCrawl = root;
+
+  for(level = 0;level<length;level++){
+    index = get_index(key[level]);
+    if(index < 0 || index >= ALPHABET_SIZE) continue;
+    if(!pCrawl->children[index]){
+      return false;
+    }
+    pCrawl = pCrawl->children[index];
+  }
+  return pCrawl->is_end;
+}
+
+void free_all(struct TrieNode * curs){
+  int i;
+  if(!curs) return;
+
+  for(i=0;i<ALPHABET_SIZE;i++){
+    free_all(curs->children[i]);
+  }
+  free(curs);
+}
 
 int min(int a, int b, int c)
 {	
@@ -186,19 +262,8 @@ float compare_phrases(char * phr_1, char * phr_2){
   }
   return match_words/max(id_1,id_2);
 }
-int get_index(char symbol){
-  if(symbol == ' '){
-    return -2;
-  }
-  if((int)symbol == -72){
-    return 32;
-  }
-  if((int)symbol >= -32 && (int)symbol <= -1){
-    return (int)symbol + 32;
-  }
-  return -1;
-}
-int find_phrase(char*path,int size,char * phrase){
+
+int find_phrase(char*path,int size,char * phrase,struct TrieNode ** trie_array,int * trie_index){
 
   FILE *fp;
   //char str[size];
@@ -211,28 +276,34 @@ int find_phrase(char*path,int size,char * phrase){
   char *str = (char *)malloc(size);
   size_t result = fread (str,1,size,fp);
   if (result != size){fputs ("Reading error",stderr); exit (3);}  
-  char line[255];
+  char word[180];
   int index = 0;
   int cnt_b = 0;
+  
+  struct TrieNode *root = getNode();
   while(cnt_b != size){
     if(*str == '\r'){
-      line[index] = '\0';
-      index = 0;
       str++;
       cnt_b++;
-      //fprintf(fw,"%s | %s\n",phrase,line);
-      if(levenshtein(line,phrase)  <= 4){
-	return 1;
-      }
+     }
+    else if(*str == ' '){
+      word[index] = '\0';
+      index = 0;
+      //printf("%s\n",word);
+      insert(root, word);
     }
     else{
-      line[index] = *str;
-     
+      word[index] = *str;
       index++;
     }
     cnt_b++;
     str++;
   }
+  trie_array[*trie_index] = root;
+  printf("%d\n",*trie_index);
+  (*trie_index)++;
+  
+  //free_all(root);
   // printf("%d\n",cnt_b);
   // size_t result = fread (str,1,size,fp);
   //if (result != size){fputs ("Reading error",stderr); exit (3);}
@@ -256,7 +327,7 @@ int find_phrase(char*path,int size,char * phrase){
   return 0;
 
 }
-void iterate_files(char * phrase){
+void iterate_files(char * phrase,struct TrieNode ** trie_array,int* trie_index){
     printf("Iterating...\n");
     
     char folder_name[255];
@@ -296,10 +367,11 @@ void iterate_files(char * phrase){
 	   strcat( path_to_file, file->d_name );
 	   if (stat (path_to_file, &st) == 0) size = st.st_size; // SIZE OF FILE
 	   //printf("%s\n", path_to_file);
-	   if(find_phrase(path_to_file,size,phrase) == 1){
+	   if(find_phrase(path_to_file,size,phrase,trie_array,trie_index) == 1){
 	     printf("%s\n",path_to_file);
 	     break;
 	   }
+	   
 	}
 	closedir(subfolder);
 	//free(path_to_subfolder);
@@ -311,6 +383,31 @@ void iterate_files(char * phrase){
     
 }
 
+void display(FILE *fptr,struct TrieNode* root, char str[], int level)
+{
+    // If node is leaf node, it indicates end
+    // of string, so a null character is added
+    // and string is displayed
+    if (root->is_end) 
+    {
+        str[level] = '\0';
+        fprintf(fptr,"%s\n",str);
+    }
+  
+    int i;
+    for (i = 0; i < 33; i++) 
+    {
+        // if NON NULL child is found
+        // add parent key to str and
+        // call the display function recursively
+        // for child node
+        if (root->children[i]) 
+        {
+            str[level] = i - 32;
+            display(fptr,root->children[i], str, level + 1);
+        }
+    }
+}
 int main()
 {
   
@@ -318,23 +415,92 @@ int main()
     char * query_par = (char *)malloc(strlen(query));
     convertUtf8ToCp1251(query, query_par);
     double time_spent = 0.0;  
-    clock_t begin = clock();    
+    clock_t begin = clock();
+    int in = 0;
+    int * trie_index = &in;
+    struct TrieNode * trie_array[10000];
     //printf("DISTANCE:%d\n",levenshtein(query_par, 17, query_par_2,14));  
     //float num = compare_phrases(query_par,"и вы брут сын мой");
     //printf("%f\n",num);
     //update_subtitles();
-    int index = 0;
-    while(query_par[index] != '\0'){
-      printf("%d\n",get_index(query_par[index]));
-      index++;
+    /*
+    
+    char keys[][255] = {"ты7d", "выбыл", "норман"};
+    char keys_par[3][255];
+    char output[][32] = {"Not present in trie", "Present in trie"};
+    
+    struct TrieNode *root = getNode();
+    // Construct trie
+    
+    for(int j =0;j < ARRAY_SIZE(keys_par);j++){
+      convertUtf8ToCp1251(keys[j],keys_par[j]);
     }
-    iterate_files(query_par);
+    
+    int i;
+    
+    for (i = 0; i < ARRAY_SIZE(keys_par); i++)
+        insert(root, keys_par[i]);
+    
+    int level = 0;
+    char str[255];
+
+
+    
+    FILE *fptr;
+    fptr = fopen("BIGF","w");
+    
+    display(fptr,root, str, level);
+    
+    
+    char * query= "выбылм";
+    char * query_par = (char *)malloc(strlen(query));
+    convertUtf8ToCp1251(query, query_par);
+    fprintf(fptr,"QUERY: %s",query_par);
+    printf("%s --- %s\n", "the", output[search(root, query_par)] );
+    free_all(root);
+
+
+
+        
+    char keys_2[][255] = {"новые", "словечки", "хахахха"};
+    char keys_par_2[3][255];
+    char output_2[][32] = {"Not present in trie", "Present in trie"};
+    
+    root = getNode();
+    
+    for(int j =0;j < ARRAY_SIZE(keys_par_2);j++){
+      convertUtf8ToCp1251(keys_2[j],keys_par_2[j]);
+    }
+    
+    
+    
+    for (i = 0; i < ARRAY_SIZE(keys_par_2); i++)
+        insert(root, keys_par_2[i]);
+   
+    display(fptr,root,str,level);
+    fclose(fptr);
+    */
+    
+    iterate_files(query_par,trie_array,trie_index);
     //find_phrase("../new_Files/2/American Beauty.CD1.srt",14287,query_par);
     clock_t end = clock();
     time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
     printf("The elapsed time is %f seconds\n", time_spent);
-    free(query_par);
+    while(true){
+      char c = getchar();
+      char * query_2= "шампанское";
+      char * query_par_2 = (char *)malloc(strlen(query));
+      convertUtf8ToCp1251(query_2, query_par_2);
+      // fprintf(fptr,"QUERY: %s",query_par_2);
+      for(int i=0;i< *trie_index;i++){
+	//printf("%d\n",i);
+	printf("%d\n",search(trie_array[i],query_par_2))
+	  
+	
+      }
+      printf("done");
+      //printf("%s --- %s\n", "the", output[search(root, query_par)] );
+    }
+    //free(query_par);
     return 0;    
 }
- 
-       
