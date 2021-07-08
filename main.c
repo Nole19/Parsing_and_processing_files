@@ -102,6 +102,31 @@ void free_all(struct TrieNode * curs){
   free(curs);
 }
 
+void display(FILE *fptr,struct TrieNode* root, char str[], int level)
+{
+    // If node is leaf node, it indicates end
+    // of string, so a null character is added
+    // and string is displayed
+    if (root->is_end) 
+    {
+        str[level] = '\0';
+        fprintf(fptr,"%s\n",str);
+    }
+  
+    int i;
+    for (i = 0; i < 33; i++) 
+    {
+        // if NON NULL child is found
+        // add parent key to str and
+        // call the display function recursively
+        // for child node
+        if (root->children[i]) 
+        {
+            str[level] = i - 32;
+            display(fptr,root->children[i], str, level + 1);
+        }
+    }
+}
 int min(int a, int b, int c)
 {	
 	if(a <= b && a <= c)
@@ -293,7 +318,13 @@ int build_tries(char*path,int size,struct TrieNode ** trie_array,int * trie_inde
       line_counter++;
       if(line_counter == 10){
 	  trie_array[*trie_index] = root;
-	  printf("%d\n",*trie_index);
+	  printf("Build tree with index %d\n",*trie_index);
+	  if(*trie_index == 0){
+	    FILE * fw = fopen("trech.txt","w");
+	    char str[10000];
+	    display(fw,trie_array[*trie_index],str,0);
+	    fclose(fw);
+	  }     
 	  (*trie_index)++;
 	  root = getNode();
 	  root->id_film = id_film;
@@ -393,31 +424,7 @@ void iterate_files(struct TrieNode ** trie_array,int* trie_index){
     
 }
 
-void display(FILE *fptr,struct TrieNode* root, char str[], int level)
-{
-    // If node is leaf node, it indicates end
-    // of string, so a null character is added
-    // and string is displayed
-    if (root->is_end) 
-    {
-        str[level] = '\0';
-        fprintf(fptr,"%s\n",str);
-    }
-  
-    int i;
-    for (i = 0; i < 33; i++) 
-    {
-        // if NON NULL child is found
-        // add parent key to str and
-        // call the display function recursively
-        // for child node
-        if (root->children[i]) 
-        {
-            str[level] = i - 32;
-            display(fptr,root->children[i], str, level + 1);
-        }
-    }
-}
+
 char * enter_line(void) {
     char * line = malloc(100), * linep = line;
     size_t lenmax = 100, len = lenmax;
@@ -496,15 +503,14 @@ int main()
       clock_t begin = clock();
       for(int i=0;i< *trie_index;i++){
 	int good_word_count = 0;
-        for(int i =0;i<words_count;i++){
-	  if(search(trie_array[i],words[i])){
-	    printf("please");
+        for(int j =0;j<words_count;j++){
+	  if(search(trie_array[i],words[j])){
 	    good_word_count++;
 	  }
 	}
-	  if(good_word_count != 0){
-	    printf("%d\n",good_word_count);
-	  }
+	if(good_word_count == words_count){
+	  printf("FIND FILM number %d\n",trie_array[i]->id_film);
+	}
       }
       clock_t end = clock();
       time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
