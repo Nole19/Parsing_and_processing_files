@@ -42,8 +42,73 @@ int get_index(char symbol){
 struct TrieNode{
   unsigned int id_film;
   struct TrieNode * children[ALPHABET_SIZE];
+  int * index_array;
+  int cnt_index;
   bool is_end;
 };
+int is_one_child(struct TrieNode *root){
+  int cnt = 0;
+  int index = -1;
+  for(int i=0;i< ALPHABET_SIZE;i++){
+    if(root->children[i] != NULL){
+      index = i;
+      cnt++;
+      if(cnt == 2){
+	return -1;
+      }
+    }
+  }
+  return index;
+}
+
+void compress(struct TrieNode * root,int index){
+  //printf("START COMPRESSION\n");
+  
+  int id = is_one_child(root);
+  if(id == -1){
+    if(root->is_end == true) return;
+    //printf("MORE THAN ONE child\n");
+    for(int i = 0; i < ALPHABET_SIZE;i++){
+      if(root->children[i] != NULL){
+	compress(root->children[i],0);
+      }
+    }
+   }
+  else{
+    //printf("ONE\n");
+    //printf("Calculated array_size %d\n",root->cnt_index);
+    root->index_array = (int *)realloc(root->index_array,(root->cnt_index + 2)*sizeof(int));
+    root->index_array[root->cnt_index] = index;
+    root->cnt_index++;
+    if(root->is_end == true) return;
+    struct TrieNode * ptr;
+    ptr = root->children[id]; 
+    root->index_array[root->cnt_index] = id;
+    id = is_one_child(ptr);
+    while(id != -1 && ptr->is_end != true){
+      // printf("free\n");
+       root->index_array = (int *)realloc(ptr->index_array,(root->cnt_index + 1)*sizeof(int));
+       root->index_array[root->cnt_index] = id;
+       root->cnt_index++;
+       struct TrieNode * tmp =  ptr->children[id];
+       free(ptr);       
+       ptr = tmp;
+       id = is_one_child(ptr);
+       
+    }
+    //printf("WORD FINISHED\n");
+    for(int i = 0; i < ALPHABET_SIZE;i++){
+      root->children[i] = ptr->children[i];
+    }
+    root->is_end = ptr->is_end;
+    free(ptr);
+    if(id==-1){
+      compress(root,-1);
+    }
+    
+ }
+}
+
 struct TrieNode * getNode(){
   struct TrieNode *pNode = NULL;
   pNode = (struct TrieNode *)malloc(sizeof(struct TrieNode));
@@ -54,6 +119,8 @@ struct TrieNode * getNode(){
       pNode->children[i] = NULL;
    }
   }
+  pNode->index_array = NULL;
+  pNode->cnt_index = 0;
   return pNode;
 }
 
@@ -317,14 +384,15 @@ int build_tries(char*path,int size,struct TrieNode ** trie_array,int * trie_inde
       cnt_b++;
       line_counter++;
       if(line_counter == 10){
+	compress(root,-1);
 	  trie_array[*trie_index] = root;
-	  printf("Build tree with index %d\n",*trie_index);
-	  if(*trie_index == 0){
-	    FILE * fw = fopen("trech.txt","w");
-	    char str[10000];
-	    display(fw,trie_array[*trie_index],str,0);
-	    fclose(fw);
-	  }     
+	  // printf("Build tree with index %d\n",*trie_index);
+	  //if(*trie_index == 0){
+	    //FILE * fw = fopen("trech.txt","w");
+	    //char str[10000];
+	    // display(fw,trie_array[*trie_index],str,0);
+	    //fclose(fw);
+	  //}     
 	  (*trie_index)++;
 	  root = getNode();
 	  root->id_film = id_film;
@@ -344,8 +412,9 @@ int build_tries(char*path,int size,struct TrieNode ** trie_array,int * trie_inde
     cnt_b++;
     str++;
   }
+  compress(root,-1);
   trie_array[*trie_index] = root;
-  printf("%d\n",*trie_index);
+  //printf("%d\n",*trie_index);
   (*trie_index)++;
   
   //free_all(root);
@@ -463,7 +532,7 @@ int main()
     int in = 0;
     int * trie_index = &in;
     struct TrieNode * trie_array[1000000];
-    update_subtitles();
+    //update_subtitles();
     
     // char * query = "больше";
    
@@ -473,6 +542,7 @@ int main()
       char words[255][255];
       int words_count = 0;
       int word_index = 0;
+      printf("%d\n",(int)sizeof(struct TrieNode));
       char* query  = enter_line();
       char * query_par = (char *)malloc(strlen(query));
       convertUtf8ToCp1251(query, query_par);
