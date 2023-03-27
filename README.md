@@ -44,7 +44,7 @@ $ pip install -r requirements.txt
 ## Usage
 - First you should start file parser.py to parse films to csv file
 ```bash
- $ python parser.py --pages <number_of_pages> --csv <output_csv_file>
+$ python parser.py --pages <number_of_pages> --csv <output_csv_file>
 ```
 For example, to scrape the first 5 pages of Kinopoisk.ru, connect the movies with subtitles, and save the data to output.csv, run:
 ```bash
