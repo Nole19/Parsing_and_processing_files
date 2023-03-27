@@ -1,4 +1,4 @@
-# Parsing_and_processing_files
+# Parsing and processing files
 
 ## Table of Contents
 * [General Info](#general-information)
