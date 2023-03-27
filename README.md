@@ -17,7 +17,7 @@
 
 
 ## Technologies Used
-- Python 3.7.2 and high
+- Python 3.7.2 and higher
 - Libraries: bs4, requests, csv, zipfile, fnmatch, selenium
 
 ## Installation
